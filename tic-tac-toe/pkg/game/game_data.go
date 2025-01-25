@@ -30,10 +30,13 @@ type TicTacToeData struct {
 	g *game.DataGame
 }
 
-func NewTicTacToeData() *TicTacToeData {
+func NewTicTacToeData() (*TicTacToeData, error) {
 	libraryEntity := getLibraryEntity()
 	players := getPlayers()
-	libraryPhase := getPhaseLibrary()
+	libraryPhase, err := getPhaseLibrary()
+	if err != nil {
+		return nil, err
+	}
 	firstPhase := getFirstPhase()
 	g, err := game.NewDataGame(libraryEntity, libraryPhase, firstPhase, players)
 	if err != nil {
@@ -41,7 +44,7 @@ func NewTicTacToeData() *TicTacToeData {
 	}
 	return &TicTacToeData{
 		g: g,
-	}
+	}, nil
 }
 
 func getLibraryEntity() entity.LibraryDataEntity {
@@ -81,21 +84,71 @@ func getPlayers() []player.Id {
 	return players
 }
 
-func getPhaseLibrary() phase.LibraryPhase {
+func getPhaseLibrary() (phase.LibraryPhase, error) {
 	libraryPhase := make(phase.LibraryPhase, 1)
-	libraryPhase[PhaseCreateBoard] = getPhaseCreateBoard()
-	return libraryPhase
+	a, err := getPhaseCreateBoard()
+	if err != nil {
+		return nil, err
+	}
+	libraryPhase[PhaseCreateBoard] = *a
+	return libraryPhase, nil
 }
 func getFirstPhase() phase.NamePhase {
 	return PhaseCreateBoard
 }
-func getPhaseCreateBoard() phase.DataPhase {
+func getPhaseCreateBoard() (*phase.DataPhase, error) {
+	createEntity00, err := getCreateSquare(0, 0, StateEmpty)
+	createEntity01, err := getCreateSquare(0, 1, StateEmpty)
+	createEntity02, err := getCreateSquare(0, 2, StateEmpty)
+	createEntity10, err := getCreateSquare(1, 0, StateEmpty)
+	createEntity11, err := getCreateSquare(1, 1, StateEmpty)
+	createEntity12, err := getCreateSquare(1, 2, StateEmpty)
+	createEntity20, err := getCreateSquare(2, 0, StateEmpty)
+	createEntity21, err := getCreateSquare(2, 1, StateEmpty)
+	createEntity22, err := getCreateSquare(2, 2, StateEmpty)
+	sendOutputDataInstruction, err := instructionOutput.NewDataInstructionSendOutput()
+	if err != nil {
+		return nil, err
+	}
+	a := make([]instruction.DataInstruction, 10)
+	a[0] = createEntity00
+	a[1] = createEntity01
+	a[2] = createEntity02
+	a[3] = createEntity10
+	a[4] = createEntity11
+	a[5] = createEntity12
+	a[6] = createEntity20
+	a[7] = createEntity21
+	a[8] = createEntity22
+	a[9] = sendOutputDataInstruction
+
+	dataArrayInstruction, err := instructioncontrol.NewDataInstructionArray(a)
+	if err != nil {
+		return nil, err
+	}
+	stages, err := phase.NewDataStage(dataArrayInstruction)
+	if err != nil {
+		return nil, err
+	}
+
+	turns, err := phase.NewDataTurn([]player.Id{}, []phase.DataStage{*stages})
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := phase.NewDataPhase([]phase.DataTurn{*turns})
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+func getCreateSquare(x int, y int, state int) (instruction.DataInstruction, error) {
 	createEntity1DataInstruction, err := instructionentity.NewDataInstructionCreateEntityIntoVariable(SquareData, EntityIdPropertyNameStoreEntity)
 	if err != nil {
 		panic(err)
 	}
 
-	xValueResolver, err := resolveValueConstant.NewResolveConstant[int](0)
+	xValueResolver, err := resolveValueConstant.NewResolveConstant[int](x)
 	if err != nil {
 		panic(err)
 	}
@@ -104,7 +157,7 @@ func getPhaseCreateBoard() phase.DataPhase {
 		panic(err)
 	}
 
-	yValueResolver, err := resolveValueConstant.NewResolveConstant[int](0)
+	yValueResolver, err := resolveValueConstant.NewResolveConstant[int](y)
 	if err != nil {
 		panic(err)
 	}
@@ -113,7 +166,7 @@ func getPhaseCreateBoard() phase.DataPhase {
 		panic(err)
 	}
 
-	stateValueResolver, err := resolveValueConstant.NewResolveConstant[int](StateEmpty)
+	stateValueResolver, err := resolveValueConstant.NewResolveConstant[int](state)
 	if err != nil {
 		panic(err)
 	}
@@ -126,7 +179,7 @@ func getPhaseCreateBoard() phase.DataPhase {
 	intPropertiesModifier[IntPropertyNameY] = setYModifier
 	intPropertiesModifier[IntPropertyNameState] = setStateModifier
 
-	dataPropertiesModifer, err := entity.NewDataPropertiesModifier(
+	dataPropertiesModifier, err := entity.NewDataPropertiesModifier(
 		&intPropertiesModifier,
 		nil,
 		nil,
@@ -136,7 +189,7 @@ func getPhaseCreateBoard() phase.DataPhase {
 	if err != nil {
 		panic(err)
 	}
-	dataEntityModifier, err := entity.NewDataEntityModifier(*dataPropertiesModifer)
+	dataEntityModifier, err := entity.NewDataEntityModifier(*dataPropertiesModifier)
 	if err != nil {
 		panic(err)
 	}
@@ -149,33 +202,14 @@ func getPhaseCreateBoard() phase.DataPhase {
 	if err != nil {
 		panic(err)
 	}
-	sendOutputDataInstruction, err := instructionOutput.NewDataInstructionSendOutput()
-	if err != nil {
-		panic(err)
-	}
-	a := make([]instruction.DataInstruction, 3)
+
+	a := make([]instruction.DataInstruction, 2)
 	a[0] = createEntity1DataInstruction
 	a[1] = setXYStateForSquareInstruction
-	a[2] = sendOutputDataInstruction
 
 	dataArrayInstruction, err := instructioncontrol.NewDataInstructionArray(a)
 	if err != nil {
 		panic(err)
 	}
-
-	stages, err := phase.NewDataStage(dataArrayInstruction)
-	if err != nil {
-		panic(err)
-	}
-
-	turns, err := phase.NewDataTurn([]player.Id{}, []phase.DataStage{*stages})
-	if err != nil {
-		panic(err)
-	}
-
-	p, err := phase.NewDataPhase([]phase.DataTurn{*turns})
-	if err != nil {
-		panic(err)
-	}
-	return *p
+	return dataArrayInstruction, nil
 }
