@@ -3,7 +3,7 @@ package console_draw
 import (
 	"fmt"
 	"github.com/big-smiles/golang-boardgame-examples/tic-tac-toe/pkg/board"
-	tictactoeGame "github.com/big-smiles/golang-boardgame-examples/tic-tac-toe/pkg/game"
+	"github.com/big-smiles/golang-boardgame-examples/tic-tac-toe/pkg/tictTacToeData"
 )
 
 func Draw(b board.Board) {
@@ -28,11 +28,11 @@ func Draw(b board.Board) {
 }
 func getCharacter(state int) string {
 	switch state {
-	case tictactoeGame.StateEmpty:
+	case tictTacToeData.StateEmpty:
 		return " "
-	case tictactoeGame.StatePlayer1:
+	case tictTacToeData.StatePlayer1:
 		return "X"
-	case tictactoeGame.StatePlayer2:
+	case tictTacToeData.StatePlayer2:
 		return "O"
 	default:
 		panic("invalid state")
